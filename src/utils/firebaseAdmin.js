@@ -1,18 +1,20 @@
+// src/utils/firebaseAdmin.js ✅ Fully CommonJS-Compatible
+
 // ✅ Import the Firebase Admin SDK
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
 // ✅ Parse the Firebase service account key from environment variable
 const firebaseKey = JSON.parse(process.env.FIREBASE_ADMIN_KEY);
 
-// ✅ Fix the private_key formatting issue (convert escaped newlines to real newlines)
-firebaseKey.private_key = firebaseKey.private_key.replace(/\\n/g, '\n');
+// ✅ Fix escaped newlines in private_key (replace \\n with actual line breaks)
+firebaseKey.private_key = firebaseKey.private_key.replace(/\\n/g, "\n");
 
-// ✅ Initialize Firebase Admin SDK (only if not already initialized)
+// ✅ Initialize Firebase Admin SDK (only once)
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(firebaseKey), // 🔐 Use service account credentials
+    credential: admin.credential.cert(firebaseKey), // 🔐 Service account
   });
 }
 
-// ✅ Export the initialized Firebase Admin instance
+// ✅ Export the initialized admin instance
 module.exports = admin;

@@ -70,16 +70,16 @@ router.get("/admin/users/count", async (req, res) => {
  * This route sends a password reset email using Firebase Auth and a custom email template.
  */
 const sendEmail = require("../utils/sendEmail");
+ // ✅ Add this at the top if not already
 
 router.post("/reset-password-request", async (req, res) => {
   const { email } = req.body;
 
   try {
-    // 🔗 Generate Firebase password reset link
-    const resetLink = await admin.auth().generatePasswordResetLink(email);
-    console.log("🔗 Firebase reset link:", resetLink);
+    const resetLink = await admin.auth().generatePasswordResetLink(email, {
+      url: "https://lina-optic-app-frontend.vercel.app/reset-password"
+    });
 
-    // 💌 Compose custom email content in HTML
     const subject = "🔐 Réinitialisation de votre mot de passe - Lina Optic";
     const html = `
       <div style="font-family: Arial, sans-serif; color: #333;">
@@ -97,19 +97,23 @@ router.post("/reset-password-request", async (req, res) => {
       </div>
     `;
 
-    // 📤 Send email using configured sendEmail utility
     await sendEmail(email, subject, html);
 
-    // ✅ Respond with success message
     res.status(200).json({
       message: "📩 Un email de réinitialisation a été envoyé. Veuillez vérifier votre boîte de réception."
     });
   } catch (error) {
-    console.error("❌ Erreur lors de l'envoi de l'email Firebase:", error.message);
+    console.error("❌ Firebase reset email error:", error.message);
     res.status(404).json({
-      message: "❌ Impossible d’envoyer le lien. Vérifiez que l’adresse email est correcte ou réessayez plus tard."
+      message: "❌ Unable to send reset email. Please check the email address or try again later."
     });
   }
 });
 
+
 module.exports = router;
+
+
+
+
+
