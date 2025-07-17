@@ -21,7 +21,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : [
       "http://localhost:5173",
       "https://lina-optic-app-frontend-khav.vercel.app",
-      "https://lina-optic-app-frontend.vercel.app"
+      "https://lina-optic-app-frontend.vercel.app",
+      "https://linaoptic.com"
     ];
 
 // ===============================
