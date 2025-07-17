@@ -2,7 +2,6 @@
 // 📦 Import Dependencies
 // ===============================
 const express = require("express");
-const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
 require("dotenv").config();
@@ -27,29 +26,34 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
     ];
 
 // ===============================
-// 🛡️ Apply CORS Middleware
+// 🛡️ CORS Middleware (Dynamic Origin Support)
 // ===============================
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+
   if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Origin", origin); // ✅ Respond with the matched origin
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
+
+  // Allow common headers and methods
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization");
+
+  // ✅ Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
   next();
 });
 
-
-// ✅ Handle CORS Preflight Requests Globally
-app.options("*", cors());
-
 // ===============================
-// 🧾 Middleware
+// 🧾 Middleware to Parse JSON
 // ===============================
-app.use(express.json()); // Parse incoming JSON requests
+app.use(express.json()); // Enable parsing JSON request bodies
 
-// ✅ Serve Static Files (Uploaded Images)
+// ✅ Serve Static Files (Uploaded Product Images)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ===============================
@@ -59,11 +63,11 @@ app.use("/api/products", require("./src/products/product.route"));
 app.use("/api/orders", require("./src/orders/order.route"));
 app.use("/api/auth", require("./src/users/user.route"));
 app.use("/api/admin", require("./src/stats/admin.stats"));
-app.use("/api/upload", require("./src/routes/uploadRoutes")); // ✅ Fixed path for image uploads
+app.use("/api/upload", require("./src/routes/uploadRoutes")); // ✅ Image uploads
 app.use("/api/contact", require("./src/contact-form/contact-form.route"));
 
 // ===============================
-// 🌐 Default Root Route
+// 🌐 Default Health Check Route
 // ===============================
 app.get("/", (req, res) => {
   res.send("✅ Lina Optic e-commerce Server is running!");
@@ -81,7 +85,7 @@ const connectDB = async () => {
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
-    setTimeout(connectDB, 5000); // Retry connection after 5 seconds
+    setTimeout(connectDB, 5000); // Retry after 5s if failed
   }
 };
 connectDB();
