@@ -11,47 +11,57 @@ require("dotenv").config();
 // ===============================
 const app = express();
 const port = process.env.PORT || 5000;
+app.disable("x-powered-by");
 
 // ===============================
 // 🌐 Define Allowed Origins for CORS
 // ===============================
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+const allowedOrigins = (process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
   : [
       "http://localhost:5173",
       "https://lina-optic-app-frontend-khav.vercel.app",
       "https://lina-optic-app-frontend.vercel.app",
       "https://linaoptic.com",
-      "https://www.linaoptic.com"
-    ];
+      "https://www.linaoptic.com",
+    ]).map((o) => o.trim());
 
 // ===============================
 // 🛡️ CORS Middleware (Dynamic Origin Support)
+//  - Adds PATCH
+//  - Answers OPTIONS with 204
+//  - Allows common headers
 // ===============================
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin); // ✅ Respond with the matched origin
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
-  // Allow common headers and methods
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Authorization, Accept"
+  );
 
-  // ✅ Handle preflight requests
+  // ✅ Always handle preflight
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+    return res.sendStatus(204);
   }
 
   next();
 });
 
 // ===============================
-// 🧾 Middleware to Parse JSON
+// 🧾 Body Parsers
 // ===============================
-app.use(express.json()); // Enable parsing JSON request bodies
+app.use(express.json({ limit: "10mb" })); // allow larger JSON bodies if needed
+app.use(express.urlencoded({ extended: true }));
 
 // ✅ Serve Static Files (Uploaded Product Images)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
