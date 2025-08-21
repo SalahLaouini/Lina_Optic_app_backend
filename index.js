@@ -4,7 +4,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
-const cors = require("cors"); // ✅ use proven CORS middleware
+const cors = require("cors");
 require("dotenv").config();
 
 // ===============================
@@ -13,50 +13,59 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 app.disable("x-powered-by");
-
-// (optional, but good on Vercel/Proxies)
 app.set("trust proxy", 1);
 
 // ===============================
 // 🌐 Allowed Origins for CORS
+//   - robust split that trims spaces around commas
 // ===============================
-const allowedOrigins = (process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : [
-      "http://localhost:5173",
-      "https://lina-optic-app-frontend-khav.vercel.app",
-      "https://lina-optic-app-frontend.vercel.app",
-      "https://linaoptic.com",
-      "https://www.linaoptic.com",
-    ]).map((o) => o.trim());
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(/\s*,\s*/)
+    : [
+        "http://localhost:5173",
+        "https://lina-optic-app-frontend-khav.vercel.app",
+        "https://lina-optic-app-frontend.vercel.app",
+        "https://linaoptic.com",
+        "https://www.linaoptic.com",
+      ]
+).map((o) => o.trim());
 
 // ===============================
 // 🛡️ CORS Middleware (handles preflight too)
-//  - Answers OPTIONS 204 automatically
-//  - Adds Vary: Origin to prevent caching bugs
-//  - Limits to our allowedOrigins only
 // ===============================
 const corsOptions = {
-  origin: function (origin, callback) {
-    // allow same-origin / server-to-server with no Origin header
+  origin(origin, callback) {
+    // allow requests without Origin (curl, server-to-server)
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     return callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Authorization", "Accept"],
-  credentials: true,                 // keep true only if you use cookies/auth
+  credentials: true, // set to false if you do NOT use cookies
   optionsSuccessStatus: 204,
 };
 
-// ✅ CORS must be before any routes
+// ✅ Add Vary and CORS early
 app.use((req, res, next) => {
-  res.setHeader("Vary", "Origin");   // important for caches (CDN/browsers)
+  res.setHeader("Vary", "Origin"); // avoid cache-related CORS bugs
   next();
 });
 app.use(cors(corsOptions));
-// explicitly handle preflight for all routes
+// Handle preflight for all routes
 app.options("*", cors(corsOptions));
+
+// ✅ Always-echo ACAO for allowed origins (even on 404/500)
+//    This ensures responses from any downstream handler still include ACAO
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  next();
+});
 
 // ===============================
 // 🧾 Body Parsers
@@ -96,7 +105,7 @@ const connectDB = async () => {
     console.log("✅ MongoDB connected successfully");
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
-    setTimeout(connectDB, 5000); // Retry after 5s if failed
+    setTimeout(connectDB, 5000);
   }
 };
 connectDB();
