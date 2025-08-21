@@ -17,7 +17,7 @@ app.set("trust proxy", 1);
 
 // ===============================
 // 🌐 Allowed Origins for CORS
-//   - robust split that trims spaces around commas
+//    (env wins; spaces around commas tolerated)
 // ===============================
 const allowedOrigins = (
   process.env.ALLOWED_ORIGINS
@@ -32,7 +32,7 @@ const allowedOrigins = (
 ).map((o) => o.trim());
 
 // ===============================
-// 🛡️ CORS Middleware (handles preflight too)
+// 🛡️ CORS
 // ===============================
 const corsOptions = {
   origin(origin, callback) {
@@ -43,21 +43,22 @@ const corsOptions = {
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Authorization", "Accept"],
-  credentials: true, // set to false if you do NOT use cookies
+  credentials: true, // set false if you never use cookies
   optionsSuccessStatus: 204,
 };
 
-// ✅ Add Vary and CORS early
+// Add Vary early to avoid cache-related CORS bugs
 app.use((req, res, next) => {
-  res.setHeader("Vary", "Origin"); // avoid cache-related CORS bugs
+  res.setHeader("Vary", "Origin");
   next();
 });
+
+// Apply CORS before routes
 app.use(cors(corsOptions));
 // Handle preflight for all routes
 app.options("*", cors(corsOptions));
 
-// ✅ Always-echo ACAO for allowed origins (even on 404/500)
-//    This ensures responses from any downstream handler still include ACAO
+// Always echo ACAO for allowed origins (even on 404/500)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
@@ -73,11 +74,13 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Serve Static Files (Uploaded Product Images)
+// ===============================
+// 📁 Static (uploads)
+// ===============================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ===============================
-// 🔗 API Route Registrations
+// 🔗 Routes
 // ===============================
 app.use("/api/products", require("./src/products/product.route"));
 app.use("/api/orders", require("./src/orders/order.route"));
@@ -87,14 +90,14 @@ app.use("/api/upload", require("./src/routes/uploadRoutes"));
 app.use("/api/contact", require("./src/contact-form/contact-form.route"));
 
 // ===============================
-// 🌐 Default Health Check Route
+// 🩺 Health
 // ===============================
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.send("✅ Lina Optic e-commerce Server is running!");
 });
 
 // ===============================
-// 🔌 Connect to MongoDB
+// 🗄️ MongoDB
 // ===============================
 const connectDB = async () => {
   try {
@@ -111,7 +114,7 @@ const connectDB = async () => {
 connectDB();
 
 // ===============================
-// 🚀 Start Express Server
+// ▶️ Start
 // ===============================
 app.listen(port, () => {
   console.log(`🚀 Server running on port ${port}`);
